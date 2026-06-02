@@ -1,0 +1,321 @@
+{
+  "info": {
+    "_postman_id": "41812085-8c6d-4f0b-bfb8-d6a28023dba9",
+    "name": "spotify-api-playwright-postman",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "13096002"
+  },
+  "item": [
+    {
+      "name": "Auth - Get Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// validate status 200 OK\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "// save token\r",
+              "const response = pm.response.json();\r",
+              "if (response.access_token) {\r",
+              "    pm.environment.set(\"accessToken\", response.access_token);\r",
+              "    console.log(\"Token guardado con éxito en el Environment.\");\r",
+              "} else {\r",
+              "    console.error(\"No se pudo obtener el access_token de la respuesta.\");\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "client_credentials",
+              "type": "text",
+              "uuid": "bc064bc2-84e8-4356-a74d-d1af1eaf4f32"
+            },
+            {
+              "key": "client_id",
+              "value": "{{clientId}}",
+              "type": "text",
+              "uuid": "f6ea6a65-a8b9-4852-8e92-1cb507d24364"
+            },
+            {
+              "key": "client_secret",
+              "value": "{{clientSecret}}",
+              "type": "text",
+              "uuid": "03ac9359-459a-485a-bf30-918e90e3f1ff"
+            }
+          ]
+        },
+        "url": {
+          "raw": "https://accounts.spotify.com/api/token",
+          "protocol": "https",
+          "host": ["accounts", "spotify", "com"],
+          "path": ["api", "token"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search - Get Track",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. validate status 200 OK\r",
+              "pm.test(\"Status code is 200 OK\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "// 2. validate structure response\r",
+              "pm.test(\"Response contains track items\", function () {\r",
+              "    const jsonData = pm.response.json();\r",
+              "    \r",
+              "    // verify structure\r",
+              "    pm.expect(jsonData).to.have.property('tracks');\r",
+              "    pm.expect(jsonData.tracks).to.have.property('items');\r",
+              "    pm.expect(jsonData.tracks.items).to.be.an('array').that.is.not.empty;\r",
+              "    \r",
+              "    // extract ID and name\r",
+              "    const firstTrack = jsonData.tracks.items[0];\r",
+              "    console.log(\"Canción encontrada: \" + firstTrack.name + \" - ID: \" + firstTrack.id);\r",
+              "    \r",
+              "    // save ID of the track\r",
+              "    pm.environment.set(\"lastTrackId\", firstTrack.id);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/search?q=Ti-de&type=track&limit=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["search"],
+          "query": [
+            {
+              "key": "q",
+              "value": "Ti-de"
+            },
+            {
+              "key": "type",
+              "value": "track"
+            },
+            {
+              "key": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "User - Get Current Profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Profile retrieved successfully\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "    const jsonData = pm.response.json();\r",
+              "    pm.environment.set(\"userId\", jsonData.id);\r",
+              "    console.log(\"Spotify User ID: \" + jsonData.id);\r",
+              "});\r",
+              "\r",
+              "// verify contract\r",
+              "const profileSchema = {\r",
+              "    \"type\": \"object\",\r",
+              "    \"required\": [\"id\", \"type\", \"href\"],\r",
+              "    \"properties\": {\r",
+              "        \"id\": { \"type\": \"string\" },\r",
+              "        \"type\": { \"type\": \"string\", \"enum\": [\"user\"] },\r",
+              "        \"href\": { \"type\": \"string\" },\r",
+              "        \"display_name\": { \"type\": [\"string\", \"null\"] },\r",
+              "        \"email\": { \"type\": \"string\" }\r",
+              "    }\r",
+              "};\r",
+              "\r",
+              "// validation of Tv4 in Postman\r",
+              "pm.test(\"Schema Validation - User Profile contract is valid\", function () {\r",
+              "    const responseJson = pm.response.json();\r",
+              "    pm.expect(tv4.validate(responseJson, profileSchema)).to.be.true;\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["me"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Playlist - Create Playlist",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Should fail with 401 Unauthorized\", function () {\r",
+              "    pm.response.to.have.status(401);\r",
+              "    \r",
+              "    const jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.error).to.have.property('message', 'No token provided');\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Performance - Response time is within SLA (less than 500ms)\", function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Playlist created successfully\", function () {\r",
+              "    pm.response.to.have.status(201); \r",
+              "    \r",
+              "    const jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData).to.have.property('id');\r",
+              "    pm.environment.set(\"currentPlaylistId\", jsonData.id);\r",
+              "    \r",
+              "    console.log(\"ID de la Playlist guardado: \" + jsonData.id);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "m.collectionVariables.set(\"description_tag\", \"Portfolio Run \" + new Date().toLocaleDateString());"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\": \"Automation Suite - {{description_tag}}\",\r\n    \"description\": \"Programmatically created by QA framework. Run ID: {{$randomUUID}}\",\r\n    \"public\": false\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/playlists",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "{{userId}}", "playlists"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Playlist - CleanUp (Unfollow Playlist)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"CleanUp - Playlist removed from user profile\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "    console.log(\"Environment cleanup completed successfully.\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/playlists/{{currentPlaylistId}}/followers",
+          "host": ["{{baseUrl}}"],
+          "path": ["playlists", "{{currentPlaylistId}}", "followers"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          "\r",
+          "pm.test(\"Global - Response is a valid JSON\", function () {\r",
+          "    pm.response.to.be.withBody;\r",
+          "    pm.response.to.be.json;\r",
+          "});\r",
+          "\r",
+          "pm.test(\"Performance - Response time is within SLA (less than 500ms)\", function () {\r",
+          "    pm.expect(pm.response.responseTime).to.be.below(500);\r",
+          "});"
+        ]
+      }
+    }
+  ]
+}
